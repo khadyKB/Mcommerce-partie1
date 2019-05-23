@@ -2,6 +2,7 @@ package com.ecommerce.microcommerce.web.controller;
 
 import com.ecommerce.microcommerce.dao.ProductDao;
 import com.ecommerce.microcommerce.model.Product;
+import com.ecommerce.microcommerce.web.exceptions.ProduitGratuitException;
 import com.ecommerce.microcommerce.web.exceptions.ProduitIntrouvableException;
 import com.fasterxml.jackson.databind.ser.FilterProvider;
 import com.fasterxml.jackson.databind.ser.impl.SimpleBeanPropertyFilter;
@@ -15,7 +16,9 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import javax.validation.Valid;
+import javax.websocket.server.PathParam;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.List;
 
 
@@ -57,7 +60,6 @@ public class ProductController {
         Product produit = productDao.findById(id);
 
         if(produit==null) throw new ProduitIntrouvableException("Le produit avec l'id " + id + " est INTROUVABLE. Écran Bleu si je pouvais.");
-
         return produit;
     }
 
@@ -69,6 +71,7 @@ public class ProductController {
 
     public ResponseEntity<Void> ajouterProduit(@Valid @RequestBody Product product) {
 
+        if(product.getPrix()== 0) throw new ProduitGratuitException("Le prix du produit doit etre supperieur a 0 ");
         Product productAdded =  productDao.save(product);
 
         if (productAdded == null)
@@ -103,6 +106,24 @@ public class ProductController {
         return productDao.chercherUnProduitCher(400);
     }
 
+    //calcule la marge de chaque produit (différence entre prix d‘achat et prix de vente)
+    @GetMapping(value = "/AdminProduits")
+    public List<String> calculerMargeProduit(){
 
+        List<Product> lproduit= productDao.findAll();
+        List<String> listproduitEtMarge=new ArrayList<>();
+        for (Product product: lproduit) {
+            int marge= product.getPrix()-product.getPrixAchat();
+            listproduitEtMarge.add(product.toString()+":"+marge);
+        }
+
+        return listproduitEtMarge;
+    }
+    //retourne la liste de tous les produits triés par nom croissant
+    @GetMapping(value = "/trier")
+    public List<Product> trierProduitsParOrdreAlphabetique(){
+
+        return productDao.findByOrderByNomAsc();
+    }
 
 }
